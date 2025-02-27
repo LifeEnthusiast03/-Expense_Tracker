@@ -27,3 +27,60 @@
 ```sh
 git clone https://github.com/LifeEnthusiast03/Expense_Tracker.git
 cd Expense_Tracker
+```
+### **3️⃣ Start the Application**
+```sh
+npm start
+```
+# 📦 Project Dependencies
+
+This document lists all the dependencies required to run the **Expense Tracker** project.
+
+---
+
+## 📌 Core Dependencies
+| Package                  | Version  | Description |
+|--------------------------|----------|------------|
+| `react`                  | latest   | Core React library for building UI |
+| `react-dom`              | latest   | React rendering for web applications |
+
+---
+
+## 🎨 UI & Styling
+| Package                  | Version  | Description |
+|--------------------------|----------|------------|
+| `@mui/material`          | latest   | Material UI components for styling |
+| `@mui/icons-material`    | latest   | Material UI Icons |
+| `@emotion/react`         | latest   | Emotion styling for Material UI |
+| `@emotion/styled`        | latest   | Styled components support for Material UI |
+
+---
+
+## 📊 Data Visualization
+| Package                  | Version  | Description |
+|--------------------------|----------|------------|
+| `chart.js`               | latest   | JavaScript library for charts |
+| `react-chartjs-2`        | latest   | React wrapper for Chart.js |
+
+---
+
+## 🔗 Utilities
+| Package                  | Version  | Description |
+|--------------------------|----------|------------|
+| `uuid`                   | latest   | Generate unique IDs for transactions |
+
+---
+
+## 🎙️ Voice Support (Planned)
+| Package                  | Version  | Description |
+|--------------------------|----------|------------|
+| `@speechly/react-client` | latest   | Speechly API client for voice commands |
+| `@speechly/react-ui`     | latest   | UI components for Speechly integration |
+
+---
+
+## 📌 How to Install Dependencies
+Run the following command in your project directory:
+```sh
+npm install
+
