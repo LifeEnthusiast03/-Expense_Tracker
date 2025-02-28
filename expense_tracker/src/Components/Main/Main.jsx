@@ -1,7 +1,8 @@
 import React from 'react'
 import { Card, CardHeader, CardContent, Typography,Grid2,Divider } from "@mui/material";
 import useStyles from "./style";
-
+import Form from "./Form/Form";
+import List from './List/List'
 function Main() {
     const classes = useStyles();
   return (
@@ -14,12 +15,12 @@ function Main() {
             Try saying: Add income for $100 in Category Salary for Monday...
           </Typography>
           <Divider />
-          {/* Form */}
+          <Form/>
         </CardContent>
         <CardContent className={classes.cartContent}>
           <Grid2 container spacing={2}>
             <Grid2 item xs={12}>
-              {/* List */}
+              <List/>
             </Grid2>
           </Grid2>
         </CardContent>
