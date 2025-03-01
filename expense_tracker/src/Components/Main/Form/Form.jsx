@@ -1,10 +1,29 @@
-import React from "react";
+import React,{useState,useContext} from "react";
+import { expenseTrackerContex } from "../../../Context/Context";
+import {v4 as uuidv4} from 'uuid';
 import { TextField,Typography,Grid,Button,FormControl,InputLabel,Select,MenuItem,} from "@mui/material";
 import useStyles from "./style";
 
 const Form = () => {
   const classes = useStyles();
+  const intialstate={
+    amount:"",
+    category:"Business",
+    type:"Income",
+    date:new Date()
+  }
+  const [state,setstate]=useState(intialstate);
+  const {addTransaction,transaction}=useContext(expenseTrackerContex);
+  const createTransaction=()=>{
+    const transaction={...state,amount:Number(state.amount),id:uuidv4()};
+    addTransaction(transaction);
+    setstate(intialstate);
+  }
+  
 
+  console.log(transaction);
+  
+  
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
@@ -15,7 +34,7 @@ const Form = () => {
       <Grid item xs={6}>
         <FormControl fullWidth>
           <InputLabel>Type</InputLabel>
-          <Select>
+          <Select value={state.type} onChange={(e)=>setstate({...state,type:e.target.value})}>  
             <MenuItem value="Income">Income</MenuItem>
             <MenuItem value="Expense">Expense</MenuItem>
           </Select>
@@ -24,20 +43,20 @@ const Form = () => {
       <Grid item xs={6}>
         <FormControl fullWidth>
           <InputLabel>Category</InputLabel>
-          <Select>
+          <Select value={state.category} onChange={(e)=>setstate({...state,category:e.target.value})}>
             <MenuItem value="Business">Business</MenuItem>
             <MenuItem value="Salary">Salary</MenuItem>
           </Select>
         </FormControl>
       </Grid>
       <Grid item xs={6}>
-        <TextField type="number" label="Amount" fullWidth />
+        <TextField type="number" label='Amount' fullWidth value={state.amount} onChange={(e)=>setstate({...state,amount:e.target.value})}/>
       </Grid>
       <Grid item xs={6}>
-        <TextField type="date"  fullWidth />
+        <TextField type="date"  fullWidth value={intialstate.value} onChange={(e)=>setstate({...state,date:e.target.value})} />
       </Grid>
       <Grid item xs={12}>
-        <Button className={classes.Button} variant="outlined" color="primary" fullWidth>
+        <Button className={classes.Button} variant="outlined" color="primary" fullWidth onClick={createTransaction}>
           Create
         </Button>
       </Grid>
