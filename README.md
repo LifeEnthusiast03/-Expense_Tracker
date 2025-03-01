@@ -25,7 +25,7 @@
 ## 🚀 Installation & Setup
 ### **1️⃣ Clone the Repository**
 ```sh
-git clone https://github.com/LifeEnthusiast03/Expense_Tracker.git
+git clone https://github.com/LifeEnthusiast03/-Expense_Tracker.git
 cd Expense_Tracker
 ```
 ### **3️⃣ Start the Application**
