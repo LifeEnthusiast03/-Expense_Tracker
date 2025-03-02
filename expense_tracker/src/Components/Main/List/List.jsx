@@ -21,7 +21,7 @@ function List() {
                         <Avatar
                             sx={{
                             color: "#fff",
-                            backgroundColor: transaction.type === "Income" ? green[500] : red[500],
+                            backgroundColor: transaction.type === "income" ? green[500] : red[500],
                             }}>
                             <MoneyOff />
                          </Avatar>

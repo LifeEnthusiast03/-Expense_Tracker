@@ -5,9 +5,14 @@ import { incomeCategories,expenseCategories,resetCategories } from "./Constants/
 
 const useTransaction = (title) => {
     resetCategories();
-
+    console.log(title);
+    
     const  {transaction}=useContext(expenseTrackerContex);
-    const catagories=(title==='income')?incomeCategories:expenseCategories;
+    const catagories = (title === "income") 
+    ? incomeCategories.map(c => ({ ...c })) 
+    : expenseCategories.map(c => ({ ...c }));
+
+
     const currenttransation=transaction.filter((t)=>t.type===title);
     const total=currenttransation.reduce((acc,curr)=>acc+=curr.amount,0);
     
@@ -18,15 +23,12 @@ const useTransaction = (title) => {
             if(catagory){
                 catagory.amount+=t.amount;
                 console.log("yes i have changes the amont");
+                console.log(catagory.amount);
                 console.log(catagory);
                 
             } 
     })
-    
-    
     const filterdTranscation=catagories.filter((c)=> c.amount>0);
-        
-
     const chartdata={
             dataset:[
                 {
@@ -37,6 +39,7 @@ const useTransaction = (title) => {
             labals:filterdTranscation.map((c)=>c.type)
     }
 
+    console.log(chartdata);
     
     
 
