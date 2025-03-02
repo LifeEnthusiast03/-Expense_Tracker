@@ -15,17 +15,14 @@ const Form = () => {
     date:new Date()
   }
   const [state,setstate]=useState(intialstate);
-  const {addTransaction,transaction}=useContext(expenseTrackerContex);
+  const {addTransaction}=useContext(expenseTrackerContex);
   const createTransaction=()=>{
     const transaction={...state,amount:Number(state.amount),id:uuidv4()};
     addTransaction(transaction);
     setstate(intialstate);
   }
-  const selectedCategories = state.type === 'Income' ? incomeCategories : expenseCategories;
+  const selectedCategories = state.type === 'income' ? incomeCategories : expenseCategories;
 
-  console.log(transaction);
-  
-  
   return (
     <Grid container spacing={2}>
       <Grid item xs={12}>
@@ -39,8 +36,8 @@ const Form = () => {
           <Select value={state.type} onChange={(e)=>setstate({...state,type:e.target.value})}>  
 
 
-            <MenuItem value="Income">Income</MenuItem>
-            <MenuItem value="Expense">Expense</MenuItem>
+            <MenuItem value="income">Income</MenuItem>
+            <MenuItem value="expense">Expense</MenuItem>
           </Select>
         </FormControl>
       </Grid>

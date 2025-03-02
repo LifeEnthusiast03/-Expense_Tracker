@@ -10,13 +10,13 @@ const App = () => {
     <Trackprovider>
      <Grid2 className={classes.grid} container spacing={0} alignItems="center" justify="center" style={{height: '100vh'}}>
       <Grid2 item xs={12} sm={4}>
-        <Details title='INCOME'/>
+        <Details title='income'/>
       </Grid2>
       <Grid2 item xs={12} sm={3}>
           <Main/>
       </Grid2>
       <Grid2 item xs={12} sm={4}>
-        <Details title='EXPENCE'/>
+        <Details title='expense'/>
       </Grid2>
     </Grid2>
     </Trackprovider>
