@@ -2,14 +2,16 @@ import React,{useState,useContext} from "react";
 import { expenseTrackerContex } from "../../../Context/Context";
 import {v4 as uuidv4} from 'uuid';
 import { TextField,Typography,Grid,Button,FormControl,InputLabel,Select,MenuItem,} from "@mui/material";
+import { incomeCategories,expenseCategories } from '../../../Constants/Constant';
 import useStyles from "./style";
+
 
 const Form = () => {
   const classes = useStyles();
   const intialstate={
     amount:"",
-    category:"Business",
-    type:"Income",
+    category:"",
+    type:"",
     date:new Date()
   }
   const [state,setstate]=useState(intialstate);
@@ -19,7 +21,7 @@ const Form = () => {
     addTransaction(transaction);
     setstate(intialstate);
   }
-  
+  const selectedCategories = state.type === 'Income' ? incomeCategories : expenseCategories;
 
   console.log(transaction);
   
@@ -35,6 +37,8 @@ const Form = () => {
         <FormControl fullWidth>
           <InputLabel>Type</InputLabel>
           <Select value={state.type} onChange={(e)=>setstate({...state,type:e.target.value})}>  
+
+
             <MenuItem value="Income">Income</MenuItem>
             <MenuItem value="Expense">Expense</MenuItem>
           </Select>
@@ -44,8 +48,7 @@ const Form = () => {
         <FormControl fullWidth>
           <InputLabel>Category</InputLabel>
           <Select value={state.category} onChange={(e)=>setstate({...state,category:e.target.value})}>
-            <MenuItem value="Business">Business</MenuItem>
-            <MenuItem value="Salary">Salary</MenuItem>
+          {selectedCategories.map((c) => <MenuItem key={c.type} value={c.type}>{c.type}</MenuItem>)}
           </Select>
         </FormControl>
       </Grid>
