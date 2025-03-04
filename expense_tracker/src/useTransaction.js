@@ -29,15 +29,15 @@ const useTransaction = (title) => {
             } 
     })
     const filterdTranscation=catagories.filter((c)=> c.amount>0);
-    const chartdata={
-            dataset:[
-                {
-                    data:filterdTranscation.map((c)=>c.amount),
-                    backgroundcolour:filterdTranscation.map((c)=>c.color)
-                }
-            ],
-            labals:filterdTranscation.map((c)=>c.type)
-    }
+    const chartdata = {
+        labels: filterdTranscation.map((c) => c.type),  
+        datasets: [
+            {
+                data: filterdTranscation.map((c) => c.amount),
+                backgroundColor: filterdTranscation.map((c) => c.color) 
+            }
+        ]
+    };
 
     console.log(chartdata);
     

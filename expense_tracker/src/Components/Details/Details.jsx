@@ -1,12 +1,15 @@
 import React from 'react'
 import { Card, CardHeader, CardContent, Typography } from "@mui/material";
 import useTransaction from '../../useTransaction';
-// import {Doughnut} from 'react-chartjs-2'
+
 import useStyles from './style'
+import { Doughnut } from 'react-chartjs-2';
+import { Chart, ArcElement, Tooltip, Legend } from 'chart.js';
+Chart.register(ArcElement, Tooltip, Legend);
 
 function Details({title}) {
     const classes = useStyles();
-    const {total}=useTransaction(title);
+    const {total,chartdata}=useTransaction(title);
 
   return (
     <Card className={title==="income"? classes.income:classes.expense}>
@@ -15,7 +18,7 @@ function Details({title}) {
         <Typography  variant="h5">
           {total}
         </Typography>
-        {/* <Doughnut data="DATA" /> */}
+        <Doughnut data={chartdata}/>
         
       </CardContent>
     </Card>
