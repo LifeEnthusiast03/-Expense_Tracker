@@ -1,9 +1,11 @@
 import React from "react";
 import Details from "./Components/Details/Details";
 import Main from "./Components/Main/Main";
+import Voicebutton from "./Components/Voicebtn/Voicebutton"
 import { Grid2 } from "@mui/material";
 import useStyles from "./style2";
 import { Trackprovider } from "./Context/Context";
+
 const App = () => {
   const classes = useStyles();
   return (
@@ -18,13 +20,11 @@ const App = () => {
       <Grid2 item xs={12} sm={4}>
         <Details title='expense'/>
       </Grid2>
+      <Voicebutton/>
+     
     </Grid2>
     </Trackprovider>
 
-       
- 
-
-    
 
   )
 };
