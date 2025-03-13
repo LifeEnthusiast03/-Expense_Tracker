@@ -1,63 +1,37 @@
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
+const apikey = "AIzaSyBAbgG_-phkCUZm2NHfQie2owigiM0H2Gw";
+const genAI = new GoogleGenerativeAI(apikey);
 
-// //This funtion is for voice recognition
+const model = genAI.getGenerativeModel({
+  model: "gemini-1.5-flash",
+  systemInstruction: `
+    You are an AI assistant that extracts structured transaction details from a given text. Your task is to identify the type, category, amount, and date of the transaction, along with generating a unique ID. 
 
-// export const startVoiceRecognition = (setTranscript, onSpeechDetected) => {
+    Follow these guidelines:
 
-//     //this is used for voice recognition 
-//     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-//     if (!SpeechRecognition) {
-//       alert("Your browser does not support Speech Recognition.");
-//       return;
-//     }
-//     //this create a new instance of recognation 
-//     const recognition = new SpeechRecognition();
+    - **Type:** Identify whether the transaction is "income" or "expense".  
+    - **Category:** Extract the category mentioned (e.g., "business", "food", "entertainment", etc.).  
+    - **Amount:** Extract the numerical value representing the transaction amount. If the currency is mentioned, ignore it but retain the numeric value.  
+    - **Date:** If a date is mentioned, use it. If no date is provided, use the current date. Format the date as "YYYY-MM-DD".  
+    - **Unique ID:** Generate a random alphanumeric string of 10 characters for each transaction.  
 
-//     //set the language to english 
-//     recognition.lang = "en-US"; 
-
-//     //start lisining to user
-//     recognition.start();
-  
-//     //this event lisner is trigger while user stop talking 
-//     recognition.onresult = async (event) => {
-//       const spokenText = event.results[0][0].transcript; // Get recognized text
-//       setTranscript(spokenText); // Update UI or state
-
-       
-
-//         // this is used for the api call to wit ai using the spokentext
-//       if (onSpeechDetected) {
-//         onSpeechDetected(spokenText);
-//       }
-//     };
-  
-        
-    
-//         //for any error in voice recognition
-//     recognition.onerror = (event) => {
-//       console.error("Speech Recognition Error:", event.error);
-//       setTranscript("Error occurred, try again.");
-//     };
-//   };
-  
-
+    Return only a valid JSON object with no extra formatting.
+  `
+});
 
   //this funtion is user for api call and return the response
-  export const sendToWitAI = async (text, witAccessToken) => {
+  export async function extractTransactionDetails(prompt) {
     try {
-      const response = await fetch(`https://api.wit.ai/message?v=20230222&q=${encodeURIComponent(text)}`, {
-        headers: { Authorization: `Bearer ${witAccessToken}` }
-      });
-  
-      const data = await response.json();
-      console.log("Wit.ai Response:", data);
-      return data; 
+      const result = await model.generateContent(prompt);
+      const response = await result.response.text(); 
+      const cleanedResponse = response.replace(/```json|```/g, "").trim();
+      return JSON.parse(cleanedResponse); 
     } catch (error) {
-      console.error("Error calling Wit.ai:", error);
+      console.error("Error generating content:", error);
       return null;
     }
-  };
+  }
 
 
 

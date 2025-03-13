@@ -1,32 +1,32 @@
+
 import { useState } from "react";
-import { startVoiceRecognition, sendToWitAI } from "../../useVoice";
-import styles from "./style"; // Import the styles
+import { startVoiceRecognition, extractTransactionDetails } from "../../useVoice";
+import styles from "./style"; 
 import {useContext} from "react"
 import { expenseTrackerContex } from '../../Context/Context'
+import {v4 as uuidv4} from 'uuid';
 
 export default function Voicebutton() {
-    const witAccessToken = "ZSBSXUG25Q3ZCRVZAYPOB6MG3KEXP4YL";
-    const intialstate={
-        amount:"",
-        category:"",
-        type:"",
-        date:new Date()
-      }
-    const [state,setstate]=useState(intialstate);
-    const {addTransaction}=useContext(expenseTrackerContex);
-    const [transcript, setTranscript] = useState("Click the button and speak...");
+   
+    const {addTransaction,transaction}=useContext(expenseTrackerContex);
+    
+    
+    const [transcript, setTranscript] = useState("working on this feature is on , till then add manually");
     const handleSpeechDetected = async (spokenText) => {
-        const data = await sendToWitAI(spokenText, witAccessToken);
-        console.log("Processed by Wit.ai:", data);
-        const type =data.entities["Type:Type"]?.[0]?.value; // "income"
-        const amount =data.entities["amount:amount"]?.[0]?.value; // "50"
-        const category = data.entities["catagory:catagory"]?.[0]?.value; // "Bill"
+        const data = await extractTransactionDetails(spokenText);
+        // console.log("Processed by gemini:", data);
 
-        console.log("Type:", type);
-        console.log("Amount:", amount);
-        console.log("Category:", category);
-
-
+        const transaction={
+          id:uuidv4(),
+          amount:Number(data.amount),
+          category:data.category,
+          type:data.type,
+          date:data.date
+        }
+        // console.log(transaction);
+        
+        addTransaction(transaction);
+        
     };
 
 

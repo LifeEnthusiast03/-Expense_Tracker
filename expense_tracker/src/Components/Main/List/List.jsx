@@ -11,6 +11,7 @@ function List() {
         deleteTransaction(id);
     }
 
+
   return (
    <MUIList dense={false}  className={classes.list}>
       
