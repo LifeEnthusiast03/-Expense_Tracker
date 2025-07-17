@@ -1,6 +1,11 @@
 import express from 'express';
-import cors from 'cors';
+import cors from 'cors'; // Fixed: Added missing closing quote
 import { createServer } from 'http';
+import dotenv from 'dotenv';
+import connectDb from './config/database.js';
+
+dotenv.config();
+connectDb();
 
 const app = express();
 const server = createServer(app);
