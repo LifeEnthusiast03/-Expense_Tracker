@@ -1,9 +1,10 @@
-import mongoose, { Document, Schema } from "mongoose";
+import mongoose, { Document, Schema, Model } from "mongoose";
 
 interface IBudget extends Document {
     title: string;
     category: string;
     budgetAmount: number;
+    currentAmount: number; // New field to track current spending
     period: 'weekly' | 'monthly' | 'yearly';
     startDate: Date;
     endDate: Date;
@@ -12,6 +13,23 @@ interface IBudget extends Document {
     description?: string;
     createdAt: Date;
     updatedAt: Date;
+    // Instance methods
+    isExceeded(): boolean;
+    isCurrent(): boolean;
+}
+
+interface IBudgetModel extends Model<IBudget> {
+    // Static methods
+    updateCurrentAmount(
+        userId: mongoose.Types.ObjectId, 
+        category: string, 
+        amount: number, 
+        expenseDate: Date
+    ): Promise<IBudget | null>;
+    
+    recalculateCurrentAmount(
+        budgetId: mongoose.Types.ObjectId
+    ): Promise<IBudget | null>;
 }
 
 const budgetSchema = new Schema<IBudget>({
@@ -35,6 +53,12 @@ const budgetSchema = new Schema<IBudget>({
         required: [true, 'Budget amount is required'],
         min: [0.01, 'Budget amount must be greater than 0'],
         max: [999999.99, 'Budget amount cannot exceed 999,999.99']
+    },
+    currentAmount: {
+        type: Number,
+        default: 0,
+        min: [0, 'Current amount cannot be negative'],
+        max: [999999.99, 'Current amount cannot exceed 999,999.99']
     },
     period: {
         type: String,
@@ -73,107 +97,86 @@ const budgetSchema = new Schema<IBudget>({
 // Compound index to prevent duplicate budgets for same category and period
 budgetSchema.index({ userId: 1, category: 1, period: 1, startDate: 1 }, { unique: true });
 
-// // Index for better query performance
-// budgetSchema.index({ userId: 1, isActive: 1 });
-// budgetSchema.index({ userId: 1, period: 1 });
+// Virtual field to get remaining amount
+budgetSchema.virtual('remainingAmount').get(function() {
+    return this.budgetAmount - this.currentAmount;
+});
 
-// // Method to check if budget is current (within date range)
-// budgetSchema.methods.isCurrent = function() {
-//     const now = new Date();
-//     return now >= this.startDate && now <= this.endDate;
-// };
+// Virtual field to get percentage used
+budgetSchema.virtual('percentageUsed').get(function() {
+    return (this.currentAmount / this.budgetAmount) * 100;
+});
 
-// // Method to get spent amount for this budget
-// budgetSchema.methods.getSpentAmount = async function() {
-//     const Expense = mongoose.model('Expense');
-    
-//     const result = await Expense.aggregate([
-//         {
-//             $match: {
-//                 userId: this.userId,
-//                 category: this.category === 'total' ? { $exists: true } : this.category,
-//                 date: {
-//                     $gte: this.startDate,
-//                     $lte: this.endDate
-//                 }
-//             }
-//         },
-//         {
-//             $group: {
-//                 _id: null,
-//                 totalSpent: { $sum: '$amount' }
-//             }
-//         }
-//     ]);
-    
-//     return result[0]?.totalSpent || 0;
-// };
+// Method to check if budget is exceeded
+budgetSchema.methods.isExceeded = function() {
+    return this.currentAmount > this.budgetAmount;
+};
 
-// // Method to get remaining budget
-// budgetSchema.methods.getRemainingAmount = async function() {
-//     const spentAmount = await this.getSpentAmount();
-//     return this.budgetAmount - spentAmount;
-// };
+// Method to check if budget is current (within date range)
+budgetSchema.methods.isCurrent = function() {
+    const now = new Date();
+    return now >= this.startDate && now <= this.endDate;
+};
 
-// // Static method to get all active budgets for a user
-// budgetSchema.statics.getActiveBudgets = async function(userId: mongoose.Types.ObjectId) {
-//     const now = new Date();
-//     return await this.find({
-//         userId,
-//         isActive: true,
-//         startDate: { $lte: now },
-//         endDate: { $gte: now }
-//     });
-// };
+// Static method to update budget amount when expense is added
+budgetSchema.statics.updateCurrentAmount = async function(userId: mongoose.Types.ObjectId, category: string, amount: number, expenseDate: Date) {
+    try {
+        const budget = await this.findOne({
+            userId,
+            category,
+            isActive: true,
+            startDate: { $lte: expenseDate },
+            endDate: { $gte: expenseDate }
+        });
 
-// // Static method to create monthly budget
-// budgetSchema.statics.createMonthlyBudget = async function(userId: mongoose.Types.ObjectId, category: string, amount: number, title: string, year: number, month: number) {
-//     const startDate = new Date(year, month - 1, 1);
-//     const endDate = new Date(year, month, 0); // Last day of month
-    
-//     return await this.create({
-//         title,
-//         category,
-//         budgetAmount: amount,
-//         period: 'monthly',
-//         startDate,
-//         endDate,
-//         userId
-//     });
-// };
+        if (budget) {
+            budget.currentAmount += amount;
+            await budget.save();
+            return budget;
+        }
+        return null;
+    } catch (error) {
+        console.error('Error updating budget current amount:', error);
+        throw error;
+    }
+};
 
-// // Static method to create weekly budget
-// budgetSchema.statics.createWeeklyBudget = async function(userId: mongoose.Types.ObjectId, category: string, amount: number, title: string, weekStartDate: Date) {
-//     const endDate = new Date(weekStartDate);
-//     endDate.setDate(endDate.getDate() + 6); // 7 days total
-    
-//     return await this.create({
-//         title,
-//         category,
-//         budgetAmount: amount,
-//         period: 'weekly',
-//         startDate: weekStartDate,
-//         endDate,
-//         userId
-//     });
-// };
+// Static method to recalculate current amount for a budget
+budgetSchema.statics.recalculateCurrentAmount = async function(budgetId: mongoose.Types.ObjectId) {
+    try {
+        const budget = await this.findById(budgetId);
+        if (!budget) return null;
 
-// // Static method to create yearly budget
-// budgetSchema.statics.createYearlyBudget = async function(userId: mongoose.Types.ObjectId, category: string, amount: number, title: string, year: number) {
-//     const startDate = new Date(year, 0, 1); // January 1st
-//     const endDate = new Date(year, 11, 31); // December 31st
-    
-//     return await this.create({
-//         title,
-//         category,
-//         budgetAmount: amount,
-//         period: 'yearly',
-//         startDate,
-//         endDate,
-//         userId
-//     });
-// };
+        const Expense = mongoose.model('Expense');
+        
+        const result = await Expense.aggregate([
+            {
+                $match: {
+                    userId: budget.userId,
+                    category: budget.category,
+                    date: {
+                        $gte: budget.startDate,
+                        $lte: budget.endDate
+                    }
+                }
+            },
+            {
+                $group: {
+                    _id: null,
+                    totalSpent: { $sum: '$amount' }
+                }
+            }
+        ]);
 
-const Budget = mongoose.model<IBudget>('Budget', budgetSchema);
+        budget.currentAmount = result[0]?.totalSpent || 0;
+        await budget.save();
+        return budget;
+    } catch (error) {
+        console.error('Error recalculating budget current amount:', error);
+        throw error;
+    }
+};
+
+const Budget = mongoose.model<IBudget, IBudgetModel>('Budget', budgetSchema);
 
 export default Budget;
