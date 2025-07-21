@@ -1,5 +1,10 @@
 import mongoose, { Document, Schema } from "mongoose";
 
+interface IIncomeSource {
+    incomeId: mongoose.Types.ObjectId;
+    amount: number;
+}
+
 interface IGoal extends Document {
     name: string;
     description?: string;
@@ -9,10 +14,32 @@ interface IGoal extends Document {
     targetDate: Date;
     isCompleted: boolean;
     userId: mongoose.Types.ObjectId;
-    goalCredit?: mongoose.Types.ObjectId;
+    incomeSources?: IIncomeSource[]; // New field to track income sources
     createdAt: Date;
     updatedAt: Date;
+    
+    // Methods
+    addAmount(amount: number): Promise<IGoal>;
+    updateAmount(newAmount: number): Promise<IGoal>;
+    
+    // Virtuals
+    progressPercentage: number;
+    remainingAmount: number;
+    daysRemaining: number;
 }
+
+const incomeSourceSchema = new Schema({
+    incomeId: {
+        type: Schema.Types.ObjectId,
+        ref: 'Income',
+        required: true
+    },
+    amount: {
+        type: Number,
+        required: true,
+        min: [0.01, 'Amount must be greater than 0']
+    }
+}, { _id: false });
 
 const goalSchema = new Schema<IGoal>({
     name: {
@@ -61,9 +88,9 @@ const goalSchema = new Schema<IGoal>({
         ref: 'User',
         required: [true, 'User ID is required']
     },
-    goalCredit: {
-        type: Schema.Types.ObjectId,
-        ref: 'GoalCredit'
+    incomeSources: {
+        type: [incomeSourceSchema],
+        default: []
     }
 }, {
     timestamps: true
@@ -73,69 +100,70 @@ const goalSchema = new Schema<IGoal>({
 goalSchema.index({ userId: 1, isCompleted: 1 });
 goalSchema.index({ userId: 1, priority: 1 });
 goalSchema.index({ userId: 1, targetDate: 1 });
+goalSchema.index({ 'incomeSources.incomeId': 1 }); // New index for income sources
 
-// // Virtual for progress percentage
-// goalSchema.virtual('progressPercentage').get(function() {
-//     return Math.round((this.currentAmount / this.targetAmount) * 100 * 100) / 100;
-// });
+// Virtual for progress percentage
+goalSchema.virtual('progressPercentage').get(function() {
+    return Math.round((this.currentAmount / this.targetAmount) * 100 * 100) / 100;
+});
 
-// // Virtual for remaining amount
-// goalSchema.virtual('remainingAmount').get(function() {
-//     return this.targetAmount - this.currentAmount;
-// });
+// Virtual for remaining amount
+goalSchema.virtual('remainingAmount').get(function() {
+    return this.targetAmount - this.currentAmount;
+});
 
-// // Virtual for days remaining
-// goalSchema.virtual('daysRemaining').get(function() {
-//     const today = new Date();
-//     const timeDiff = this.targetDate.getTime() - today.getTime();
-//     return Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
-// });
+// Virtual for days remaining
+goalSchema.virtual('daysRemaining').get(function() {
+    const today = new Date();
+    const timeDiff = this.targetDate.getTime() - today.getTime();
+    return Math.ceil(timeDiff / (1000 * 60 * 60 * 24));
+});
 
-// // Method to add money to goal
-// goalSchema.methods.addAmount = async function(amount: number) {
-//     if (amount <= 0) {
-//         throw new Error('Amount must be greater than 0');
-//     }
+// Method to add money to goal
+goalSchema.methods.addAmount = async function(amount: number) {
+    if (amount <= 0) {
+        throw new Error('Amount must be greater than 0');
+    }
     
-//     this.currentAmount += amount;
+    this.currentAmount += amount;
     
-//     // Check if goal is completed
-//     if (this.currentAmount >= this.targetAmount) {
-//         this.currentAmount = this.targetAmount;
-//         this.isCompleted = true;
-//     }
+    // Check if goal is completed
+    if (this.currentAmount >= this.targetAmount) {
+        this.currentAmount = this.targetAmount;
+        this.isCompleted = true;
+    }
     
-//     return await this.save();
-// };
+    return await this.save();
+};
 
-// // Method to update current amount directly
-// goalSchema.methods.updateAmount = async function(newAmount: number) {
-//     if (newAmount < 0) {
-//         throw new Error('Amount cannot be negative');
-//     }
+// Method to update current amount directly
+goalSchema.methods.updateAmount = async function(newAmount: number) {
+    if (newAmount < 0) {
+        throw new Error('Amount cannot be negative');
+    }
     
-//     this.currentAmount = newAmount;
+    this.currentAmount = newAmount;
     
-//     // Check if goal is completed
-//     this.isCompleted = this.currentAmount >= this.targetAmount;
+    // Check if goal is completed
+    this.isCompleted = this.currentAmount >= this.targetAmount;
     
-//     return await this.save();
-// };
+    return await this.save();
+};
 
-// // Static method to get active goals
-// goalSchema.statics.getActiveGoals = async function(userId: mongoose.Types.ObjectId) {
-//     return await this.find({ userId, isCompleted: false }).sort({ priority: -1, targetDate: 1 });
-// };
+// Static method to get active goals
+goalSchema.statics.getActiveGoals = async function(userId: mongoose.Types.ObjectId) {
+    return await this.find({ userId, isCompleted: false }).sort({ priority: -1, targetDate: 1 });
+};
 
-// // Static method to get completed goals
-// goalSchema.statics.getCompletedGoals = async function(userId: mongoose.Types.ObjectId) {
-//     return await this.find({ userId, isCompleted: true }).sort({ updatedAt: -1 });
-// };
+// Static method to get completed goals
+goalSchema.statics.getCompletedGoals = async function(userId: mongoose.Types.ObjectId) {
+    return await this.find({ userId, isCompleted: true }).sort({ updatedAt: -1 });
+};
 
-// // Static method to get goals by priority
-// goalSchema.statics.getGoalsByPriority = async function(userId: mongoose.Types.ObjectId, priority: string) {
-//     return await this.find({ userId, priority, isCompleted: false }).sort({ targetDate: 1 });
-// };
+// Static method to get goals by priority
+goalSchema.statics.getGoalsByPriority = async function(userId: mongoose.Types.ObjectId, priority: string) {
+    return await this.find({ userId, priority, isCompleted: false }).sort({ targetDate: 1 });
+};
 
 const Goal = mongoose.model<IGoal>('Goal', goalSchema);
 

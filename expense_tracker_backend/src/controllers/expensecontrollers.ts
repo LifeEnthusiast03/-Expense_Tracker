@@ -13,75 +13,193 @@ interface RequestFormat extends Request {
         amount: number;   
         title: string;
         description?: string; 
-        date?: Date;    
+        date?: Date | string;    
     };
 }
 
+// Helper functions
+const validateUserId = (userIdString: string | undefined): mongoose.Types.ObjectId | null => {
+    if (!userIdString || !mongoose.Types.ObjectId.isValid(userIdString)) {
+        return null;
+    }
+    return new mongoose.Types.ObjectId(userIdString);
+};
+
+const validateExpenseId = (expenseIdString: string | undefined): mongoose.Types.ObjectId | null => {
+    if (!expenseIdString || !mongoose.Types.ObjectId.isValid(expenseIdString)) {
+        return null;
+    }
+    return new mongoose.Types.ObjectId(expenseIdString);
+};
+
+const validateExpenseData = (data: any): string[] => {
+    const errors: string[] = [];
+    
+    if (!data.category) {
+        errors.push('Category is required');
+    }
+    
+    if (!data.amount || data.amount <= 0) {
+        errors.push('Valid amount is required');
+    }
+    
+    if (!data.title || data.title.trim().length === 0) {
+        errors.push('Title is required');
+    }
+    
+    const validCategories = ['food', 'transport', 'housing', 'utilities', 'healthcare', 'entertainment', 'shopping', 'education', 'travel', 'other'];
+    if (data.category && !validCategories.includes(data.category)) {
+        errors.push('Invalid category');
+    }
+    
+    return errors;
+};
+
+// Get user expenses
+const getUserExpense = async (req: RequestFormat, res: Response): Promise<void> => { 
+    try {
+        const userId = validateUserId(req.user?.userId);
+        if (!userId) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid or missing user ID'
+            });
+            return;
+        }
+
+        const expenses = await Expense.find({ userId })
+            .sort({ date: -1 }) 
+            .select('-__v');
+        
+        res.status(200).json({
+            success: true, 
+            data: expenses,
+            count: expenses.length,
+            message: expenses.length === 0 ? 'No expenses found' : undefined
+        });
+    } catch (error) {
+        console.error('Expense data Error', error);
+        res.status(500).json({ 
+            success: false,
+            message: 'Internal server error' 
+        });
+    }
+};
+
+// Get expenses with pagination and filtering
+const getExpenses = async (req: RequestFormat, res: Response): Promise<void> => {
+    try {
+        const userId = validateUserId(req.user?.userId);
+        if (!userId) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid or missing user ID'
+            });
+            return;
+        }
+
+        const { page = 1, limit = 10, category, startDate, endDate } = req.query;
+
+        // Build query
+        const query: any = { userId };
+        
+        if (category) {
+            query.category = category;
+        }
+        
+        if (startDate || endDate) {
+            query.date = {};
+            if (startDate) query.date.$gte = new Date(startDate as string);
+            if (endDate) query.date.$lte = new Date(endDate as string);
+        }
+
+        const skip = (Number(page) - 1) * Number(limit);
+        
+        const [expenses, total] = await Promise.all([
+            Expense.find(query)
+                .sort({ date: -1 })
+                .skip(skip)
+                .limit(Number(limit))
+                .select('-__v'),
+            Expense.countDocuments(query)
+        ]);
+
+        res.status(200).json({
+            success: true,
+            data: expenses,
+            pagination: {
+                currentPage: Number(page),
+                totalPages: Math.ceil(total / Number(limit)),
+                totalItems: total,
+                itemsPerPage: Number(limit)
+            },
+            message: expenses.length === 0 ? 'No expenses found' : undefined
+        });
+
+    } catch (error) {
+        console.error('Get expenses error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+
+
+// Add expense
 const addExpense = async (req: RequestFormat, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.userId;
+        const userId = validateUserId(req.user?.userId);
+        if (!userId) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid or missing user ID'
+            });
+            return;
+        }
+
         const { category, amount, title, description, date } = req.body;
 
-        if (!userId) {
-            res.status(401).json({
-                success: false,
-                message: 'User authentication required'
-            });
-            return;
-        }
-
-        if (!category) {
+        
+        const validationErrors = validateExpenseData(req.body);
+        if (validationErrors.length > 0) {
             res.status(400).json({
                 success: false,
-                message: 'Category is required'
-            });
-            return;
-        }
-
-        if (!amount || amount <= 0) {
-            res.status(400).json({
-                success: false,
-                message: 'Valid amount is required'
-            });
-            return;
-        }
-
-        if (!title || title.trim().length === 0) {
-            res.status(400).json({
-                success: false,
-                message: 'Title is required'
-            });
-            return;
-        }
-
-        const validCategories = ['food', 'transport', 'housing', 'utilities', 'healthcare', 'entertainment', 'shopping', 'education', 'travel', 'other'];
-        if (!validCategories.includes(category)) {
-            res.status(400).json({
-                success: false,
-                message: 'Invalid category'
+                message: 'Validation failed',
+                errors: validationErrors
             });
             return;
         }
 
         const expenseDate = date ? new Date(date) : new Date();
         
+        
+        if (isNaN(expenseDate.getTime())) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid date format'
+            });
+            return;
+        }
+
         const expenseData = {
             title: title.trim(),
             category, 
             amount,
             date: expenseDate,
-            userId: new mongoose.Types.ObjectId(userId),
+            userId: userId,
             description: description?.trim() || undefined
         };
 
-        // Create expense
+        
         const expense = await Expense.create(expenseData);
 
         // Update budget current amount if budget exists
         let updatedBudget = null;
         try {
             updatedBudget = await Budget.updateCurrentAmount(
-                new mongoose.Types.ObjectId(userId), 
+                userId, 
                 category, 
                 amount, 
                 expenseDate
@@ -95,7 +213,16 @@ const addExpense = async (req: RequestFormat, res: Response): Promise<void> => {
             success: true,
             message: 'Expense added successfully', 
             data: {
-                expense,
+                expense: {
+                    _id: expense._id,
+                    title: expense.title,
+                    category: expense.category,
+                    amount: expense.amount,
+                    date: expense.date,
+                    description: expense.description,
+                    createdAt: expense.createdAt,
+                    updatedAt: expense.updatedAt
+                },
                 budgetUpdated: !!updatedBudget,
                 updatedBudget: updatedBudget ? {
                     id: updatedBudget._id,
@@ -108,6 +235,18 @@ const addExpense = async (req: RequestFormat, res: Response): Promise<void> => {
 
     } catch (error) {
         console.error('Add expense error:', error);
+        
+        // Handle specific mongoose validation errors
+        if (error instanceof mongoose.Error.ValidationError) {
+            const validationErrors = Object.values(error.errors).map(err => err.message);
+            res.status(400).json({
+                success: false,
+                message: 'Validation failed',
+                errors: validationErrors
+            });
+            return;
+        }
+        
         res.status(500).json({
             success: false,
             message: 'Internal server error'
@@ -115,41 +254,45 @@ const addExpense = async (req: RequestFormat, res: Response): Promise<void> => {
     }
 };
 
+// Add expense with budget check
 const addExpenseWithBudgetCheck = async (req: RequestFormat, res: Response): Promise<void> => {
     try {
-        const userId = req.user?.userId;
+        const userId = validateUserId(req.user?.userId);
+        if (!userId) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid or missing user ID'
+            });
+            return;
+        }
+
         const { category, amount, title, description, date } = req.body;
 
-        if (!userId) {
-            res.status(401).json({
-                success: false,
-                message: 'User authentication required'
-            });
-            return;
-        }
 
-        if (!category || !amount || amount <= 0 || !title?.trim()) {
+        const validationErrors = validateExpenseData(req.body);
+        if (validationErrors.length > 0) {
             res.status(400).json({
                 success: false,
-                message: 'Category, amount, and title are required'
-            });
-            return;
-        }
-
-        const validCategories = ['food', 'transport', 'housing', 'utilities', 'healthcare', 'entertainment', 'shopping', 'education', 'travel', 'other'];
-        if (!validCategories.includes(category)) {
-            res.status(400).json({
-                success: false,
-                message: 'Invalid category'
+                message: 'Validation failed',
+                errors: validationErrors
             });
             return;
         }
 
         const expenseDate = date ? new Date(date) : new Date();
+        
+
+        if (isNaN(expenseDate.getTime())) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid date format'
+            });
+            return;
+        }
 
         // Find active budget for this category
         const budget = await Budget.findOne({
-            userId: new mongoose.Types.ObjectId(userId),
+            userId: userId,
             category,
             isActive: true,
             startDate: { $lte: expenseDate },
@@ -187,7 +330,7 @@ const addExpenseWithBudgetCheck = async (req: RequestFormat, res: Response): Pro
             category,
             amount,
             date: expenseDate,
-            userId: new mongoose.Types.ObjectId(userId),
+            userId: userId,
             description: description?.trim() || undefined
         };
 
@@ -198,7 +341,7 @@ const addExpenseWithBudgetCheck = async (req: RequestFormat, res: Response): Pro
         if (budget) {
             try {
                 updatedBudget = await Budget.updateCurrentAmount(
-                    new mongoose.Types.ObjectId(userId), 
+                    userId, 
                     category, 
                     amount, 
                     expenseDate
@@ -213,7 +356,16 @@ const addExpenseWithBudgetCheck = async (req: RequestFormat, res: Response): Pro
             success: true,
             message: 'Expense added successfully',
             data: {
-                expense,
+                expense: {
+                    _id: expense._id,
+                    title: expense.title,
+                    category: expense.category,
+                    amount: expense.amount,
+                    date: expense.date,
+                    description: expense.description,
+                    createdAt: expense.createdAt,
+                    updatedAt: expense.updatedAt
+                },
                 budgetInfo,
                 budgetWarning,
                 budgetUpdated: !!updatedBudget,
@@ -231,6 +383,18 @@ const addExpenseWithBudgetCheck = async (req: RequestFormat, res: Response): Pro
 
     } catch (error) {
         console.error('Add expense error:', error);
+        
+        // Handle specific mongoose validation errors
+        if (error instanceof mongoose.Error.ValidationError) {
+            const validationErrors = Object.values(error.errors).map(err => err.message);
+            res.status(400).json({
+                success: false,
+                message: 'Validation failed',
+                errors: validationErrors
+            });
+            return;
+        }
+        
         res.status(500).json({
             success: false,
             message: 'Internal server error'
@@ -238,4 +402,79 @@ const addExpenseWithBudgetCheck = async (req: RequestFormat, res: Response): Pro
     }
 };
 
-export { addExpense, addExpenseWithBudgetCheck };
+
+
+// Delete expense
+const deleteExpense = async (req: RequestFormat, res: Response): Promise<void> => {
+    try {
+        const userId = validateUserId(req.user?.userId);
+        if (!userId) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid or missing user ID'
+            });
+            return;
+        }
+
+        const expenseId = validateExpenseId(req.params.id);
+        if (!expenseId) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid or missing expense ID'
+            });
+            return;
+        }
+
+        // Find and delete the expense
+        const deletedExpense = await Expense.findOneAndDelete({
+            _id: expenseId,
+            userId: userId
+        }).select('-__v');
+
+        if (!deletedExpense) {
+            res.status(404).json({
+                success: false,
+                message: 'Expense not found or you do not have permission to delete it'
+            });
+            return;
+        }
+
+        // Update budget by subtracting the deleted expense amount
+        try {
+            await Budget.updateCurrentAmount(
+                userId,
+                deletedExpense.category,
+                -deletedExpense.amount,
+                deletedExpense.date
+            );
+        } catch (budgetError) {
+            console.error('Budget update error after expense deletion:', budgetError);
+            // Continue execution even if budget update fails
+        }
+
+        res.status(200).json({
+            success: true,
+            message: 'Expense deleted successfully',
+            data: deletedExpense
+        });
+
+    } catch (error) {
+        console.error('Delete expense error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error'
+        });
+    }
+};
+
+
+
+
+
+export {
+    getUserExpense, 
+    getExpenses,
+    addExpense, 
+    addExpenseWithBudgetCheck,
+    deleteExpense
+};

@@ -47,7 +47,7 @@ const expenseSchema = new Schema<IExpense>({
         type: String,
         trim: true,
         maxlength: [200, 'Description cannot exceed 200 characters']
-    }
+}
 }, {
     timestamps: true
 });
