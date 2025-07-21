@@ -3,7 +3,7 @@ import Expense from "../models/expensemodel";
 import Budget from "../models/budgetmodel";
 import mongoose from "mongoose";
 
-interface AuthenticateRequest extends Request {
+interface RequestFormat extends Request {
     user: {
         userId: string;
         email: string;
@@ -17,7 +17,7 @@ interface AuthenticateRequest extends Request {
     };
 }
 
-const addExpense = async (req: AuthenticateRequest, res: Response): Promise<void> => {
+const addExpense = async (req: RequestFormat, res: Response): Promise<void> => {
     try {
         const userId = req.user?.userId;
         const { category, amount, title, description, date } = req.body;
@@ -115,7 +115,7 @@ const addExpense = async (req: AuthenticateRequest, res: Response): Promise<void
     }
 };
 
-const addExpenseWithBudgetCheck = async (req: AuthenticateRequest, res: Response): Promise<void> => {
+const addExpenseWithBudgetCheck = async (req: RequestFormat, res: Response): Promise<void> => {
     try {
         const userId = req.user?.userId;
         const { category, amount, title, description, date } = req.body;

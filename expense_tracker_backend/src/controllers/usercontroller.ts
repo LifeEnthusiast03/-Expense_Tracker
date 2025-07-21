@@ -6,14 +6,14 @@ import Budget from "../models/budgetmodel";
 import Goal from "../models/goalmodel";
 import GoalCredit from "../models/goalcredtmodel";
 
-interface AuthenticateRequest extends Request {
+interface RequestFormat extends Request {
     user: {
         userId: string;
         email: string;
     };
 }
 
-const getUserInfo = async (req: AuthenticateRequest, res: Response): Promise<void> => {
+const getUserInfo = async (req: RequestFormat, res: Response): Promise<void> => {
     try {
         const userId = req.user?.userId;
         if (!userId) {
@@ -46,7 +46,7 @@ const getUserInfo = async (req: AuthenticateRequest, res: Response): Promise<voi
     }
 };
 
-const getUserExpense = async (req: AuthenticateRequest, res: Response): Promise<void> => { 
+const getUserExpense = async (req: RequestFormat, res: Response): Promise<void> => { 
     try {
         const userId = req.user?.userId;
         if (!userId) {
@@ -80,7 +80,7 @@ const getUserExpense = async (req: AuthenticateRequest, res: Response): Promise<
     }
 };
 
-const getUserIncome = async (req: AuthenticateRequest, res: Response): Promise<void> => {
+const getUserIncome = async (req: RequestFormat, res: Response): Promise<void> => {
     try {
         const userId = req.user?.userId;
         if (!userId) {
@@ -114,7 +114,7 @@ const getUserIncome = async (req: AuthenticateRequest, res: Response): Promise<v
     }
 };
 
-const getUserBudget = async (req: AuthenticateRequest, res: Response): Promise<void> => {
+const getUserBudget = async (req: RequestFormat, res: Response): Promise<void> => {
     try {
         const userId = req.user?.userId;
         if (!userId) {
@@ -148,7 +148,7 @@ const getUserBudget = async (req: AuthenticateRequest, res: Response): Promise<v
     }
 };
 
-const getUserGoal = async (req: AuthenticateRequest, res: Response): Promise<void> => {
+const getUserGoal = async (req: RequestFormat, res: Response): Promise<void> => {
     try {
         const userId = req.user?.userId;
         if (!userId) {
@@ -182,7 +182,7 @@ const getUserGoal = async (req: AuthenticateRequest, res: Response): Promise<voi
     }
 };
 
-const getUserGoalCredit = async (req: AuthenticateRequest, res: Response): Promise<void> => {
+const getUserGoalCredit = async (req: RequestFormat, res: Response): Promise<void> => {
     try {
         const userId = req.user?.userId;
         if (!userId) {
