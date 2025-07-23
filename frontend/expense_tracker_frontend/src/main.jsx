@@ -6,6 +6,6 @@ import ExpenseTracker from './expense_tracket.jsx'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ExpenseTracker />
+    <ExpenseTracker/>
   </StrictMode>,
 )

@@ -1,62 +1,13 @@
-import { Request, Response } from "express";
+import { Response } from "express";
 import Expense from "../models/expensemodel";
 import Budget from "../models/budgetmodel";
 import mongoose from "mongoose";
+import { ExpenseRequestFormat } from "../types/expensetype";
+import {validateUserId,validateExpenseId,validateExpenseData} from '../validator/expensevalidator'
 
-interface RequestFormat extends Request {
-    user: {
-        userId: string;
-        email: string;
-    };
-    body: {
-        category: string; 
-        amount: number;   
-        title: string;
-        description?: string; 
-        date?: Date | string;    
-    };
-}
-
-// Helper functions
-const validateUserId = (userIdString: string | undefined): mongoose.Types.ObjectId | null => {
-    if (!userIdString || !mongoose.Types.ObjectId.isValid(userIdString)) {
-        return null;
-    }
-    return new mongoose.Types.ObjectId(userIdString);
-};
-
-const validateExpenseId = (expenseIdString: string | undefined): mongoose.Types.ObjectId | null => {
-    if (!expenseIdString || !mongoose.Types.ObjectId.isValid(expenseIdString)) {
-        return null;
-    }
-    return new mongoose.Types.ObjectId(expenseIdString);
-};
-
-const validateExpenseData = (data: any): string[] => {
-    const errors: string[] = [];
-    
-    if (!data.category) {
-        errors.push('Category is required');
-    }
-    
-    if (!data.amount || data.amount <= 0) {
-        errors.push('Valid amount is required');
-    }
-    
-    if (!data.title || data.title.trim().length === 0) {
-        errors.push('Title is required');
-    }
-    
-    const validCategories = ['food', 'transport', 'housing', 'utilities', 'healthcare', 'entertainment', 'shopping', 'education', 'travel', 'other'];
-    if (data.category && !validCategories.includes(data.category)) {
-        errors.push('Invalid category');
-    }
-    
-    return errors;
-};
 
 // Get user expenses
-const getUserExpense = async (req: RequestFormat, res: Response): Promise<void> => { 
+const getUserExpense = async (req: ExpenseRequestFormat, res: Response): Promise<void> => { 
     try {
         const userId = validateUserId(req.user?.userId);
         if (!userId) {
@@ -87,7 +38,7 @@ const getUserExpense = async (req: RequestFormat, res: Response): Promise<void> 
 };
 
 // Get expenses with pagination and filtering
-const getExpenses = async (req: RequestFormat, res: Response): Promise<void> => {
+const getExpenses = async (req: ExpenseRequestFormat, res: Response): Promise<void> => {
     try {
         const userId = validateUserId(req.user?.userId);
         if (!userId) {
@@ -145,10 +96,8 @@ const getExpenses = async (req: RequestFormat, res: Response): Promise<void> => 
     }
 };
 
-
-
 // Add expense
-const addExpense = async (req: RequestFormat, res: Response): Promise<void> => {
+const addExpense = async (req: ExpenseRequestFormat, res: Response): Promise<void> => {
     try {
         const userId = validateUserId(req.user?.userId);
         if (!userId) {
@@ -255,7 +204,7 @@ const addExpense = async (req: RequestFormat, res: Response): Promise<void> => {
 };
 
 // Add expense with budget check
-const addExpenseWithBudgetCheck = async (req: RequestFormat, res: Response): Promise<void> => {
+const addExpenseWithBudgetCheck = async (req: ExpenseRequestFormat, res: Response): Promise<void> => {
     try {
         const userId = validateUserId(req.user?.userId);
         if (!userId) {
@@ -402,10 +351,8 @@ const addExpenseWithBudgetCheck = async (req: RequestFormat, res: Response): Pro
     }
 };
 
-
-
 // Delete expense
-const deleteExpense = async (req: RequestFormat, res: Response): Promise<void> => {
+const deleteExpense = async (req: ExpenseRequestFormat, res: Response): Promise<void> => {
     try {
         const userId = validateUserId(req.user?.userId);
         if (!userId) {
@@ -466,9 +413,6 @@ const deleteExpense = async (req: RequestFormat, res: Response): Promise<void> =
         });
     }
 };
-
-
-
 
 
 export {

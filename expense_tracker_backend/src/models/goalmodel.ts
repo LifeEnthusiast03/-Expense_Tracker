@@ -14,7 +14,7 @@ interface IGoal extends Document {
     targetDate: Date;
     isCompleted: boolean;
     userId: mongoose.Types.ObjectId;
-    incomeSources?: IIncomeSource[]; // New field to track income sources
+    incomeSources?: IIncomeSource[]; 
     createdAt: Date;
     updatedAt: Date;
     
